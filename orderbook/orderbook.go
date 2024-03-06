@@ -1,3 +1,6 @@
+// This package simulates an order book of a stock exchange.
+// It contains both buy and sell orders, each with a user ID, quantity, and timestamp.
+
 package orderbook
 
 import (
@@ -10,35 +13,40 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Trade represents a completed trade.
 type Trade struct {
-	Price     float64
-	Size      float64
-	Bid       bool
-	Timestamp int64
+	Price     float64 // Price of the trade
+	Size      float64 // Quantity of the trade
+	Bid       bool    // Type of the trade: buy (true) or sell (false)
+	Timestamp int64   // Timestamp of the trade
 }
 
+// Match represents matched buy and sell orders.
 type Match struct {
-	Ask        *Order
-	Bid        *Order
-	SizeFilled float64
-	Price      float64
+	Ask        *Order  // Ask order
+	Bid        *Order  // Bid order
+	SizeFilled float64 // Matched quantity
+	Price      float64 // Matched price
 }
 
+// Order represents a buy or sell order.
 type Order struct {
-	ID        int64
-	UserID    int64
-	Size      float64
-	Bid       bool
-	Limit     *Limit
-	Timestamp int64
+	ID        int64   // Order ID
+	UserID    int64   // User ID
+	Size      float64 // Order quantity
+	Bid       bool    // Order type: buy (true) or sell (false)
+	Limit     *Limit  // Price limit of the order
+	Timestamp int64   // Creation timestamp of the order
 }
 
+// Orders represents a list of orders.
 type Orders []*Order
 
 func (o Orders) Len() int           { return len(o) }
 func (o Orders) Swap(i, j int)      { o[i], o[j] = o[j], o[i] }
 func (o Orders) Less(i, j int) bool { return o[i].Timestamp < o[j].Timestamp }
 
+// NewOrder creates a new order.
 func NewOrder(bid bool, size float64, userID int64) *Order {
 	return &Order{
 		UserID:    userID,
@@ -49,10 +57,12 @@ func NewOrder(bid bool, size float64, userID int64) *Order {
 	}
 }
 
+// String converts the order to a string.
 func (o *Order) String() string {
 	return fmt.Sprintf("[size: %.2f] | [id: %d]", o.Size, o.ID)
 }
 
+// Type determines the type of the order (buy or sell).
 func (o *Order) Type() string {
 	if o.Bid {
 		return "BID"
@@ -60,16 +70,19 @@ func (o *Order) Type() string {
 	return "ASK"
 }
 
+// IsFilled checks if the order is completely filled.
 func (o *Order) IsFilled() bool {
 	return o.Size == 0.0
 }
 
+// Limit represents the price limit of orders.
 type Limit struct {
-	Price       float64
-	Orders      Orders
-	TotalVolume float64
+	Price       float64 // Limit price
+	Orders      Orders  // Orders at the limit
+	TotalVolume float64 // Total volume at the limit
 }
 
+// Limits represents a list of limits.
 type Limits []*Limit
 
 type ByBestAsk struct{ Limits }
@@ -84,6 +97,7 @@ func (b ByBestBid) Len() int           { return len(b.Limits) }
 func (b ByBestBid) Swap(i, j int)      { b.Limits[i], b.Limits[j] = b.Limits[j], b.Limits[i] }
 func (b ByBestBid) Less(i, j int) bool { return b.Limits[i].Price > b.Limits[j].Price }
 
+// NewLimit creates a new price limit.
 func NewLimit(price float64) *Limit {
 	return &Limit{
 		Price:  price,
@@ -91,12 +105,14 @@ func NewLimit(price float64) *Limit {
 	}
 }
 
+// AddOrder adds an order to the price limit.
 func (l *Limit) AddOrder(o *Order) {
 	o.Limit = l
 	l.Orders = append(l.Orders, o)
 	l.TotalVolume += o.Size
 }
 
+// DeleteOrder removes an order from the price limit.
 func (l *Limit) DeleteOrder(o *Order) {
 	for i := 0; i < len(l.Orders); i++ {
 		if l.Orders[i] == o {
@@ -111,6 +127,7 @@ func (l *Limit) DeleteOrder(o *Order) {
 	sort.Sort(l.Orders)
 }
 
+// Fill fills an order and returns the matches.
 func (l *Limit) Fill(o *Order) []Match {
 	var (
 		matches        []Match
@@ -139,6 +156,7 @@ func (l *Limit) Fill(o *Order) []Match {
 	return matches
 }
 
+// fillOrder matches an order with another order and returns the match.
 func (l *Limit) fillOrder(a, b *Order) Match {
 	var (
 		bid        *Order
@@ -172,18 +190,20 @@ func (l *Limit) fillOrder(a, b *Order) Match {
 	}
 }
 
+// Orderbook represents an order book of a stock exchange.
 type Orderbook struct {
-	asks []*Limit
-	bids []*Limit
+	asks []*Limit // List of sell orders
+	bids []*Limit // List of buy orders
 
-	Trades []*Trade
+	Trades []*Trade // List of completed trades
 
-	mu        sync.RWMutex
-	AskLimits map[float64]*Limit
-	BidLimits map[float64]*Limit
-	Orders    map[int64]*Order
+	mu        sync.RWMutex // Mutex for concurrent access protection
+	AskLimits map[float64]*Limit // Map of sell price limits
+	BidLimits map[float64]*Limit // Map of buy price limits
+	Orders    map[int64]*Order // Map of orders
 }
 
+// NewOrderbook creates a new order book.
 func NewOrderbook() *Orderbook {
 	return &Orderbook{
 		asks:      []*Limit{},
@@ -195,6 +215,7 @@ func NewOrderbook() *Orderbook {
 	}
 }
 
+// PlaceMarketOrder places a market order and returns the matches.
 func (ob *Orderbook) PlaceMarketOrder(o *Order) []Match {
 	ob.mu.Lock()
 	defer ob.mu.Unlock()
@@ -246,6 +267,7 @@ func (ob *Orderbook) PlaceMarketOrder(o *Order) []Match {
 	return matches
 }
 
+// PlaceLimitOrder places a limit order at a specified price.
 func (ob *Orderbook) PlaceLimitOrder(price float64, o *Order) {
 	var limit *Limit
 
@@ -281,6 +303,7 @@ func (ob *Orderbook) PlaceLimitOrder(price float64, o *Order) {
 	limit.AddOrder(o)
 }
 
+// clearLimit removes a limit order from the order book.
 func (ob *Orderbook) clearLimit(bid bool, l *Limit) {
 	if bid {
 		delete(ob.BidLimits, l.Price)
@@ -303,6 +326,7 @@ func (ob *Orderbook) clearLimit(bid bool, l *Limit) {
 	fmt.Printf("clearing limit price level [%.2f]\n", l.Price)
 }
 
+// CancelOrder cancels a placed order.
 func (ob *Orderbook) CancelOrder(o *Order) {
 	limit := o.Limit
 	limit.DeleteOrder(o)
@@ -313,6 +337,7 @@ func (ob *Orderbook) CancelOrder(o *Order) {
 	}
 }
 
+// BidTotalVolume calculates the total volume of buy orders.
 func (ob *Orderbook) BidTotalVolume() float64 {
 	totalVolume := 0.0
 
@@ -323,6 +348,7 @@ func (ob *Orderbook) BidTotalVolume() float64 {
 	return totalVolume
 }
 
+// AskTotalVolume calculates the total volume of sell orders.
 func (ob *Orderbook) AskTotalVolume() float64 {
 	totalVolume := 0.0
 
@@ -333,11 +359,13 @@ func (ob *Orderbook) AskTotalVolume() float64 {
 	return totalVolume
 }
 
+// Asks returns sorted sell orders.
 func (ob *Orderbook) Asks() []*Limit {
 	sort.Sort(ByBestAsk{ob.asks})
 	return ob.asks
 }
 
+// Bids returns sorted buy orders.
 func (ob *Orderbook) Bids() []*Limit {
 	sort.Sort(ByBestBid{ob.bids})
 	return ob.bids

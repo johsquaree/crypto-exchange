@@ -6,12 +6,14 @@ import (
 	"testing"
 )
 
+// assert checks if two values are deeply equal, and if not, logs an error with the provided testing.T instance.
 func assert(t *testing.T, a, b any) {
 	if !reflect.DeepEqual(a, b) {
 		t.Errorf("%+v != %+v", a, b)
 	}
 }
 
+// TestLastMarketTrades tests the functionality of placing a market order and matching it against existing limit orders.
 func TestLastMarketTrades(t *testing.T) {
 	ob := NewOrderbook()
 	price := 10000.0
@@ -31,6 +33,7 @@ func TestLastMarketTrades(t *testing.T) {
 	assert(t, trade.Size, match.SizeFilled)
 }
 
+// TestLimit tests the basic functionality of the limit order data structure.
 func TestLimit(t *testing.T) {
 	l := NewLimit(10_000)
 	buyOrderA := NewOrder(true, 5, 0)
@@ -46,6 +49,7 @@ func TestLimit(t *testing.T) {
 	fmt.Println(l)
 }
 
+// TestPlaceLimitOrder tests the functionality of placing a limit order in the order book.
 func TestPlaceLimitOrder(t *testing.T) {
 	ob := NewOrderbook()
 
@@ -60,6 +64,7 @@ func TestPlaceLimitOrder(t *testing.T) {
 	assert(t, len(ob.asks), 2)
 }
 
+// TestPlaceMarketOrder tests the functionality of placing a market order in the order book.
 func TestPlaceMarketOrder(t *testing.T) {
 	ob := NewOrderbook()
 
@@ -79,6 +84,7 @@ func TestPlaceMarketOrder(t *testing.T) {
 	assert(t, buyOrder.IsFilled(), true)
 }
 
+// TestPlaceMarketOrderMultiFill tests the functionality of placing a market order that fills multiple existing limit orders.
 func TestPlaceMarketOrderMultiFill(t *testing.T) {
 	ob := NewOrderbook()
 
@@ -102,6 +108,7 @@ func TestPlaceMarketOrderMultiFill(t *testing.T) {
 	assert(t, len(matches), 2)
 }
 
+// TestCancelOrderAsk tests the functionality of cancelling an ask order in the order book.
 func TestCancelOrderAsk(t *testing.T) {
 	ob := NewOrderbook()
 	sellOrder := NewOrder(false, 4, 0)
@@ -120,6 +127,7 @@ func TestCancelOrderAsk(t *testing.T) {
 	assert(t, ok, false)
 }
 
+// TestCancelOrderBid tests the functionality of cancelling a bid order in the order book.
 func TestCancelOrderBid(t *testing.T) {
 	ob := NewOrderbook()
 	buyOrder := NewOrder(true, 4, 0)

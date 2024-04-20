@@ -1,4 +1,4 @@
-name: Change status of linked issue to "Being Worked On"
+name: Change status of linked issue to "In Review"
 on:
   pull_request:
     types: [opened, reopened]
@@ -10,12 +10,10 @@ jobs:
     steps:
       - name: Get linked issues of a PR
         env:
-          GH_TOKEN: ${{ secrets.YOUR_ACCESS_TOKEN }} #check link below for different authentication methods
+          GH_TOKEN: ${{ secrets.YOUR_ACCESS_TOKEN }} 
           ORGANIZATION: your-org
-          PROJECT_NUMBER: 1 #from project url
+          PROJECT_NUMBER: 
           PR_ID: ${{ github.event.pull_request.node_id }}
-        #the id of the node is not the id we want
-        #we need to get the project item id - this may break if there is more linked project items
         run: |
           linked_issue_id="$( gh api graphql -f query='
           query($pr:ID!) {
@@ -40,13 +38,13 @@ jobs:
           echo "PR_ID:"
           echo "${{env.PR_ID}}"
           echo "LINKED_ISSUE_ID=$linked_issue_id" >> $GITHUB_ENV
-      - name: Change status to "Being Worked On"
+      - name: Change status to "In Review"
         env:
           GH_TOKEN: ${{ secrets.YOUR_ACCESS_TOKEN }}
-          PROJECT_ID: something #retrieved calling GraphQL Github API organization { project }
+          PROJECT_ID: something 
           ISSUE_ID: ${{ env.LINKED_ISSUE_ID }}
-          STATUS_FIELD_ID: someid #you can retrieve this by api or inspecting GraphQL responses when editing available project statuses in your Github project in a browser
-          BEING_WORKED_ON_OPTION_ID: anotherid #same as above
+          STATUS_FIELD_ID:
+          BEING_WORKED_ON_OPTION_ID:
         run: |
           updatedAt="$( gh api graphql -f query='
           mutation($issueId:ID!, $projectId:ID!) {
@@ -57,3 +55,4 @@ jobs:
               }
             }
           }' -f issueId=$ISSUE_ID -f projectId=$PROJECT_ID  --jq '.data.updateProjectV2ItemFieldValue.projectV2Item.updatedAt')"
+          

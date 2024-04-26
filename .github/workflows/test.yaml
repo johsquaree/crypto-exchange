@@ -1,0 +1,58 @@
+name: Change status of linked issue to "In Review"
+on:
+  pull_request:
+    types: [opened, reopened]
+
+jobs:
+  move-to-in-progress:
+    runs-on: ubuntu-latest
+    name: Get id of a linked issue
+    steps:
+      - name: Get linked issues of a PR
+        env:
+          GH_TOKEN: ${{ secrets.YOUR_ACCESS_TOKEN }} # GitHub API'ye erişmek için gizli erişim belirtecini kullanın
+          PROJECT_NUMBER: ${{ secrets.YOUR_PROJECT_NUMBER }} # Projenin numarasını belirleyin
+          PR_ID: ${{ github.event.pull_request.node_id }} # Çekme isteğinin kimliğini alın
+        run: |
+          linked_issue_id="$( gh api graphql -f query='
+          query($pr:ID!) {
+            node(id: $pr) {
+              ... on PullRequest {
+                closingIssuesReferences(first:1, userLinkedOnly:false) {
+                  totalCount
+                  nodes { 
+                    id 
+                    projectItems(first: 5) {
+                      nodes {
+                        id
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }' -f pr=$PR_ID --jq '.data.node.closingIssuesReferences.nodes[0].projectItems.nodes[0].id')"
+          echo "ISSUE ID:"
+          echo "$linked_issue_id"
+          echo "PR_ID:"
+          echo "${{env.PR_ID}}"
+          echo "LINKED_ISSUE_ID=$linked_issue_id" >> $GITHUB_ENV
+      - name: Change status to "In Review"
+        env:
+          GH_REPO: ${{ github.repository }} # GitHub deposunun adını belirleyin
+          GH_TOKEN: ${{ secrets.YOUR_ACCESS_TOKEN }} # GitHub API'ye erişmek için gizli erişim belirtecini kullanın
+          PROJECT_ID: ${{ secrets.ASSIGN_PROJECT }} # İlgili projenin kimliğini belirleyin
+          ISSUE_ID: ${{ env.LINKED_ISSUE_ID }} # Bağlantılı konunun kimliğini alın
+          STATUS_FIELD_ID: ${{ env.LINKED_FIELD_ID }} # Durum alanının kimliğini belirleyin
+          IN_REVIEW_ON_OPTION_ID: ${{ env.LINKED_IN_REVIEW_OPTIONS_ID }} # "In Review" seçeneğinin kimliğini belirleyin
+        run: |
+          updatedAt="$( gh api graphql -f query='
+          mutation($issueId:ID!, $projectId:ID!) {
+            updateProjectV2ItemFieldValue(input: {projectId: $projectId, fieldId: "${{env.STATUS_FIELD_ID}}", itemId: $issueId, value: {singleSelectOptionId: "${{env.IN_REVIEW_ON_OPTION_ID}}"}}) {
+              projectV2Item {
+                type
+                updatedAt
+              }
+            }
+          }' -f issueId=$ISSUE_ID -f projectId=$PROJECT_ID --jq '.data.updateProjectV2ItemFieldValue.projectV2Item.updatedAt')"
+

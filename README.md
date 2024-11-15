@@ -1,7 +1,29 @@
-# CRYPTO-EXCHANGE #
+# Crypto Exchange 🚀
 
-Build your own crypto-exchange from scratch series.
+Crypto Exchange is a platform designed to facilitate cryptocurrency trading. This project aims to implement the core functionalities of a modern crypto exchange application.
 
-We are building a complete working crypto exchange from a blank page. matching engine orderbooks frontend.
+## Features ✨
 
-The main goal is to trade ERC20 tokens from our Ganache sandboxed environment.
+- **Cryptocurrency Listing:** View up-to-date cryptocurrency prices.
+- **Buy/Sell Transactions:** Enable users to trade cryptocurrencies.
+- **User Accounts:** Secure registration, login, and account management.
+- **Wallet:** Display user balances and assets.
+- **Real-Time Updates:** Continuously update prices using APIs.
+- **Mobile Compatibility:** Responsive design for mobile devices.
+
+## Requirements 📦
+
+To run this project locally, you will need the following:
+
+- [Node.js](https://nodejs.org/) (v16+)
+- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
+- [MongoDB](https://www.mongodb.com/) (or your preferred database)
+
+## Setup 🛠️
+
+Follow these steps to run the project locally:
+
+1. **Clone the Repository:**  
+   ```bash
+   git clone https://github.com/johsquaree/crypto-exchange.git
+   cd crypto-exchange
